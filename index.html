@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Three Rows Game</title>
+    <script src="confetti.js"></script>
+    <style>
+        body {
+            background-color: #f7e7ea;
+        }
+
+        .title {
+            font-family: 'Comic Sans MS', cursive;
+            font-size: xxx-large;
+            color: #ff69b4;
+            margin-bottom: 30px;
+        }
+
+        .game-board {
+            margin: auto;
+            text-align: center;
+            position: absolute;
+            width: 100%;
+            background: transparent;
+            top: 50px;
+        }
+
+        .row {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        #message {
+            font-size: xx-large;
+        }
+
+        .dot {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            margin: 0 10px;
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            background: linear-gradient(to bottom right, #ff9a9e, #fad0c4, #fad0c4, #ffd1ff);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .dot.selected {
+            transform: scale(0.8);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .first-row .dot {
+            background: linear-gradient(to bottom right, #ffdde1, #ffdde1);
+        }
+
+        .second-row .dot:nth-child(2n) {
+            background: linear-gradient(to bottom right, #f6d365, #fda085);
+        }
+
+        .third-row .dot:nth-child(odd) {
+            background: linear-gradient(to bottom right, #a1c4fd, #c2e9fb);
+        }
+
+        .new-game-button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 16px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: xx-large;
+            margin-top: 20px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition-duration: 0.4s;
+        }
+
+        .new-game-button:hover {
+            background-color: #3e8e41;
+        }
+
+    </style>
+</head>
+<body>
+<div id="particles"></div>
+<div class="game-board">
+    <h1 class="title">Three Rows Game</h1>
+    <div class="first-row row">
+        <div class="dot" id="row-0-0"></div>
+    </div>
+    <div class="second-row row">
+
+        <div class="dot" id="row-1-0"></div>
+        <div class="dot" id="row-1-1"></div>
+        <div class="dot" id="row-1-2"></div>
+        <div class="dot" id="row-1-3"></div>
+
+    </div>
+    <div class="third-row row">
+        <div class="dot" id="row-2-0"></div>
+        <div class="dot" id="row-2-1"></div>
+        <div class="dot" id="row-2-2"></div>
+        <div class="dot" id="row-2-3"></div>
+        <div class="dot" id="row-2-4"></div>
+        <div class="dot" id="row-2-5"></div>
+    </div>
+    <p id="message">Player 1's turn</p>
+    <button class="new-game-button" onclick="startNewGame()">New Game</button>
+</div>
+</div>
+<script>
+    let currentPlayer = 1;
+
+    function hoverHandler(event) {
+        const dot = event.target;
+        const row = dot.parentNode;
+
+        // remove selected class from all dots that don't belong to current row
+        const dots = document.querySelectorAll(".dot");
+        dots.forEach((d) => {
+            if (d.parentNode !== row) {
+                d.classList.remove("selected");
+            }
+        });
+
+        // add selected class to all dots before and including the current dot
+        const dotsInRow = [...row.querySelectorAll(".dot")];
+        const currentIndex = dotsInRow.indexOf(dot);
+        for (let i = 0; i <= currentIndex; i++) {
+            dotsInRow[i].classList.add("selected");
+        }
+    }
+
+    function clickHandler(event) {
+        const dot = event.target;
+        const row = dot.parentNode;
+
+        // remove selected class from all dots
+        const dots = document.querySelectorAll(".dot");
+        dots.forEach((d) => {
+            d.classList.remove("selected");
+        });
+
+        // add selected class to clicked dot
+        dot.classList.add("selected");
+
+        // update message to show current player's turn
+        const message = document.getElementById('message');
+        message.textContent = `Player ${currentPlayer}'s turn`;
+
+        // remove selected dot and dots to its left
+        const dotsInRow = [...row.querySelectorAll(".dot")];
+        const currentIndex = dotsInRow.indexOf(dot);
+        for (let i = 0; i <= currentIndex; i++) {
+            // remove dot from DOM only if it is not the last dot in the document
+            if (dotsInRow[i].parentNode.parentNode.querySelectorAll('.dot').length > 1) {
+                dotsInRow[i].parentNode.removeChild(dotsInRow[i]);
+            }
+        }
+
+        checkForWin();
+
+        // Check if there are exactly one dot remaining and stop the game
+
+        const remainingDots = document.querySelectorAll('.dot');
+        if (remainingDots.length === 1) {
+            startConfetti();
+            return;
+        }
+
+        // Switch players
+        switchPlayers();
+    }
+
+    // attach hover and click event listeners to all dots
+    const dots = document.querySelectorAll(".dot");
+    dots.forEach((dot) => {
+        dot.addEventListener("mouseover", hoverHandler);
+        dot.addEventListener("click", clickHandler);
+    });
+
+    // attach mouseout event listener to game board
+    const gameBoard = document.querySelector(".game-board");
+    gameBoard.addEventListener("mouseout", () => {
+        // remove selected class from all dots
+        const dots = document.querySelectorAll(".dot");
+        dots.forEach((dot) => {
+            dot.classList.remove("selected");
+        });
+    });
+
+    function checkForWin() {
+        // check if only one dot remains
+
+        const rows = document.querySelectorAll('.row');
+        let dotsRemaining = 0;
+
+        for (let i = 0; i < rows.length; i++) {
+            const dots = rows[i].querySelectorAll('.dot');
+            dotsRemaining += dots.length;
+
+            if (dots.length === 1) {
+                // The current player has lost
+                const message = document.getElementById('message');
+                // change the message to indicate that the player who is not the current player has won
+                message.textContent = `Player ${currentPlayer === 2 ? 2 : 1} has WON!`;
+                // Return true to indicate that a player has lost
+                return true;
+            }
+        }
+
+        // No player has lost yet
+        return false;
+    }
+
+
+    // Function to switch players
+    function switchPlayers() {
+        // Change the current player
+        if (currentPlayer === 1) {
+            currentPlayer = 2;
+        } else {
+            currentPlayer = 1;
+        }
+
+        // Update the message
+        message.textContent = `Player ${currentPlayer}'s turn`;
+    }
+
+    // Get all the removable dots on the board
+    const removableDots = document.querySelectorAll('.removable');
+
+    // Function to reset the game board and start a new game
+    function startNewGame() {
+        stopConfetti();
+        // rebuild all the rows and dots on the board and attach event listeners to them again as well and the dot sorting should be 1 4 6
+        const firstRow = document.querySelector('.first-row');
+        const secondRow = document.querySelector('.second-row');
+        const thirdRow = document.querySelector('.third-row');
+
+        firstRow.innerHTML = '<div class="dot" id="row-0-0"></div>';
+        secondRow.innerHTML = '<div class="dot" id="row-1-0"></div><div class="dot" id="row-1-1"></div><div class="dot" id="row-1-2"></div><div class="dot" id="row-1-3"></div>';
+        thirdRow.innerHTML = '<div class="dot" id="row-2-0"></div><div class="dot" id="row-2-1"></div><div class="dot" id="row-2-2"></div><div class="dot" id="row-2-3"></div><div class="dot" id="row-2-4"></div><div class="dot" id="row-2-5"></div>';
+
+        // attach hover and click event listeners to all dots
+        const dots = document.querySelectorAll(".dot");
+        dots.forEach((dot) => {
+            dot.addEventListener("mouseover", hoverHandler);
+            dot.addEventListener("click", clickHandler);
+        });
+
+        // Reset the current player to 1
+        currentPlayer = 1;
+
+        // Reset the message
+        message.textContent = `Player ${currentPlayer}'s turn`;
+
+        // Remove the selected class from all dots
+        const tots = document.querySelectorAll(".dot");
+        tots.forEach((dot) => {
+            dot.classList.remove("selected");
+        });
+
+
+    }
+
+
+</script>
+</body>
+</html>
