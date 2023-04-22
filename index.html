@@ -85,21 +85,23 @@
     </style>
 </head>
 <body>
-<div id="particles"></div>
+
+<button id="gameModeMulti" onclick="selectMode('multiplayer')">Multiplayer</button>
+<button id="gameModePc" onclick="selectMode('singleplayer')">Single Player</button>
+
 <div class="game-board">
     <h1 class="title">Three Rows Game</h1>
-    <div class="first-row row">
+    <div id="row-0" class="first-row row">
         <div class="dot" id="row-0-0"></div>
     </div>
-    <div class="second-row row">
-
+    <div id="row-1" class="second-row row">
         <div class="dot" id="row-1-0"></div>
         <div class="dot" id="row-1-1"></div>
         <div class="dot" id="row-1-2"></div>
         <div class="dot" id="row-1-3"></div>
 
     </div>
-    <div class="third-row row">
+    <div id="row-2" class="third-row row">
         <div class="dot" id="row-2-0"></div>
         <div class="dot" id="row-2-1"></div>
         <div class="dot" id="row-2-2"></div>
@@ -112,162 +114,92 @@
 </div>
 </div>
 <script>
-    let currentPlayer = 1;
 
-    function hoverHandler(event) {
-        const dot = event.target;
-        const row = dot.parentNode;
+    function selectMode(mode) {
+        var multiplayerScript = document.querySelector('script[src="multi.js"]');
+        var singleplayerScript = document.querySelector('script[src="single.js"]');
 
-        // remove selected class from all dots that don't belong to current row
-        const dots = document.querySelectorAll(".dot");
-        dots.forEach((d) => {
-            if (d.parentNode !== row) {
-                d.classList.remove("selected");
+        if (mode === 'multiplayer') {
+            // include multi.js if not included
+            if (!multiplayerScript) {
+                // remove single.js if it is included
+                if (singleplayerScript) {
+                    singleplayerScript.remove();
+                }
+                // create a new script element and set its src attribute to multi.js
+                var script = document.createElement('script');
+                script.src = 'multi.js';
+                // append the script element to the document's <head> element
+                document.head.appendChild(script);
             }
-        });
-
-        // add selected class to all dots before and including the current dot
-        const dotsInRow = [...row.querySelectorAll(".dot")];
-        const currentIndex = dotsInRow.indexOf(dot);
-        for (let i = 0; i <= currentIndex; i++) {
-            dotsInRow[i].classList.add("selected");
-        }
-    }
-
-    function clickHandler(event) {
-        const dot = event.target;
-        const row = dot.parentNode;
-
-        // remove selected class from all dots
-        const dots = document.querySelectorAll(".dot");
-        dots.forEach((d) => {
-            d.classList.remove("selected");
-        });
-
-        // add selected class to clicked dot
-        dot.classList.add("selected");
-
-        // update message to show current player's turn
-        const message = document.getElementById('message');
-        message.textContent = `Player ${currentPlayer}'s turn`;
-
-        // remove selected dot and dots to its left
-        const dotsInRow = [...row.querySelectorAll(".dot")];
-        const currentIndex = dotsInRow.indexOf(dot);
-        for (let i = 0; i <= currentIndex; i++) {
-            // remove dot from DOM only if it is not the last dot in the document
-            if (dotsInRow[i].parentNode.parentNode.querySelectorAll('.dot').length > 1) {
-                dotsInRow[i].parentNode.removeChild(dotsInRow[i]);
+        } else if (mode === 'singleplayer') {
+            // include single.js if not included
+            if (!singleplayerScript) {
+                // remove multi.js if it is included
+                if (multiplayerScript) {
+                    multiplayerScript.remove();
+                }
+                // create a new script element and set its src attribute to single.js
+                var script = document.createElement('script');
+                script.src = 'single.js';
+                // append the script element to the document's <head> element
+                document.head.appendChild(script);
             }
-        }
 
-        checkForWin();
 
-        // Check if there are exactly one dot remaining and stop the game
+            // let currentPlayer = Math.random() < 0.5 ? 'pc' : 'player';
+            currentPlayer = 'pc';
+            if (currentPlayer === 'pc') {
+                // PC's turn
+                // Select all divs with class row if they have a child element with class dot
+                const dotDivs = document.querySelectorAll('.row');
+                // convert the NodeList to an array
+                const dotDivsArray = Array.from(dotDivs);
+                // check if the selected divs have a child element with class dot and if not remove the div from the array of selected divs
+                for (var i = 0; i < dotDivsArray.length; i++) {
+                    if (dotDivsArray[i].querySelector('.dot') === null) {
+                        // remove the div from the array of selected divs if it has no child elements with class dot
+                        dotDivsArray.splice(i, 1);
+                    }
+                }
 
-        const remainingDots = document.querySelectorAll('.dot');
-        if (remainingDots.length === 1) {
-            startConfetti();
-            return;
-        }
+                // select one row at random from the array of selected divs
+                var randomDotDiv = dotDivsArray[Math.floor(Math.random() * dotDivsArray.length)];
 
-        // Switch players
-        switchPlayers();
-    }
+                // count the number of child elements with class "dot" in randomDotDiv
+                var dotCount = randomDotDiv.querySelectorAll('.dot').length;
 
-    // attach hover and click event listeners to all dots
-    const dots = document.querySelectorAll(".dot");
-    dots.forEach((dot) => {
-        dot.addEventListener("mouseover", hoverHandler);
-        dot.addEventListener("click", clickHandler);
-    });
+                // choose a random amount between 1 and the number of dots in the selected row (randomDotDiv) and make it less than to the number of dots in the selected row (randomDotDiv)
+                var randomAmount = Math.floor(Math.random() * dotCount) + 1;
+                console.log('Random amount:', randomAmount);
 
-    // attach mouseout event listener to game board
-    const gameBoard = document.querySelector(".game-board");
-    gameBoard.addEventListener("mouseout", () => {
-        // remove selected class from all dots
-        const dots = document.querySelectorAll(".dot");
-        dots.forEach((dot) => {
-            dot.classList.remove("selected");
-        });
-    });
+                // check if total number of dots in the document is equal to 1
+                if (document.querySelectorAll('.dot').length <= 1) {
+                    // if so, the game is over
+                    // display a message that the PC has won
+                    document.querySelector('#message').innerHTML = 'PC has won!';
+                    startConfetti();
+                    // disable player input
+                    return;
+                }
 
-    function checkForWin() {
-        // check if only one dot remains
 
-        const rows = document.querySelectorAll('.row');
-        let dotsRemaining = 0;
+                // remove the selected amount of dots from the selected row
+                for (var i = 0; i < randomAmount; i++) {
+                    // remove randomAmount of child elements with class "dot" from randomDotDiv
+                    randomDotDiv.removeChild(randomDotDiv.querySelector('.dot'));
+                }
 
-        for (let i = 0; i < rows.length; i++) {
-            const dots = rows[i].querySelectorAll('.dot');
-            dotsRemaining += dots.length;
+                // switch to player's turn
+                currentPlayer = 'player';
+                // display a message that it is the player's turn
+                document.querySelector('#message').innerHTML = 'Player 1\'s turn';
+                // enable player input
 
-            if (dots.length === 1) {
-                // The current player has lost
-                const message = document.getElementById('message');
-                // change the message to indicate that the player who is not the current player has won
-                message.textContent = `Player ${currentPlayer === 2 ? 2 : 1} has WON!`;
-                // Return true to indicate that a player has lost
-                return true;
             }
         }
 
-        // No player has lost yet
-        return false;
     }
-
-
-    // Function to switch players
-    function switchPlayers() {
-        // Change the current player
-        if (currentPlayer === 1) {
-            currentPlayer = 2;
-        } else {
-            currentPlayer = 1;
-        }
-
-        // Update the message
-        message.textContent = `Player ${currentPlayer}'s turn`;
-    }
-
-    // Get all the removable dots on the board
-    const removableDots = document.querySelectorAll('.removable');
-
-    // Function to reset the game board and start a new game
-    function startNewGame() {
-        stopConfetti();
-        // rebuild all the rows and dots on the board and attach event listeners to them again as well and the dot sorting should be 1 4 6
-        const firstRow = document.querySelector('.first-row');
-        const secondRow = document.querySelector('.second-row');
-        const thirdRow = document.querySelector('.third-row');
-
-        firstRow.innerHTML = '<div class="dot" id="row-0-0"></div>';
-        secondRow.innerHTML = '<div class="dot" id="row-1-0"></div><div class="dot" id="row-1-1"></div><div class="dot" id="row-1-2"></div><div class="dot" id="row-1-3"></div>';
-        thirdRow.innerHTML = '<div class="dot" id="row-2-0"></div><div class="dot" id="row-2-1"></div><div class="dot" id="row-2-2"></div><div class="dot" id="row-2-3"></div><div class="dot" id="row-2-4"></div><div class="dot" id="row-2-5"></div>';
-
-        // attach hover and click event listeners to all dots
-        const dots = document.querySelectorAll(".dot");
-        dots.forEach((dot) => {
-            dot.addEventListener("mouseover", hoverHandler);
-            dot.addEventListener("click", clickHandler);
-        });
-
-        // Reset the current player to 1
-        currentPlayer = 1;
-
-        // Reset the message
-        message.textContent = `Player ${currentPlayer}'s turn`;
-
-        // Remove the selected class from all dots
-        const tots = document.querySelectorAll(".dot");
-        tots.forEach((dot) => {
-            dot.classList.remove("selected");
-        });
-
-
-    }
-
-
 </script>
 </body>
 </html>
