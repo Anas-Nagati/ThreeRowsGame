@@ -1,9 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Three Rows Game</title>
-    <script src="confetti.js"></script>
     <style>
         body {
             background-color: #f7e7ea;
@@ -82,6 +81,36 @@
             background-color: #3e8e41;
         }
 
+        .mode-buttons {
+            margin-top: 20px;
+        }
+
+        .mode-button {
+            background-color: #2196F3;
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: x-large;
+            margin: 0 10px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition-duration: 0.4s;
+        }
+
+        .mode-button:hover {
+            background-color: #0b7dda;
+        }
+
+        .mode-button.active {
+            background-color: #ff69b4;
+        }
+
+        .mode-button.active:hover {
+            background-color: #ff1493;
+        }
     </style>
 </head>
 <body>
@@ -89,36 +118,41 @@
 <div class="game-board">
     <h1 class="title">Three Rows Game</h1>
     <div class="first-row row">
-        <div class="dot" id="row-0-0"></div>
+        <div class="dot"></div>
     </div>
     <div class="second-row row">
-
-        <div class="dot" id="row-1-0"></div>
-        <div class="dot" id="row-1-1"></div>
-        <div class="dot" id="row-1-2"></div>
-        <div class="dot" id="row-1-3"></div>
-
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
     </div>
     <div class="third-row row">
-        <div class="dot" id="row-2-0"></div>
-        <div class="dot" id="row-2-1"></div>
-        <div class="dot" id="row-2-2"></div>
-        <div class="dot" id="row-2-3"></div>
-        <div class="dot" id="row-2-4"></div>
-        <div class="dot" id="row-2-5"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
     </div>
-    <p id="message">Player 1's turn</p>
+    <p id="message">Your turn</p>
+    <div class="mode-buttons">
+        <button class="mode-button" onclick="setMode(false)">2 Players</button>
+        <button class="mode-button active" onclick="setMode(true)">vs AI</button>
+    </div>
     <button class="new-game-button" onclick="startNewGame()">New Game</button>
-</div>
 </div>
 <script>
     let currentPlayer = 1;
+    let isAIMode = true;
+    let isAIThinking = false;
+    let gameOver = false;
 
     function hoverHandler(event) {
+        if (isAIThinking || gameOver) return;
+
         const dot = event.target;
         const row = dot.parentNode;
 
-        // remove selected class from all dots that don't belong to current row
         const dots = document.querySelectorAll(".dot");
         dots.forEach((d) => {
             if (d.parentNode !== row) {
@@ -126,7 +160,6 @@
             }
         });
 
-        // add selected class to all dots before and including the current dot
         const dotsInRow = [...row.querySelectorAll(".dot")];
         const currentIndex = dotsInRow.indexOf(dot);
         for (let i = 0; i <= currentIndex; i++) {
@@ -135,139 +168,281 @@
     }
 
     function clickHandler(event) {
+        if (isAIThinking || gameOver) return;
+
         const dot = event.target;
         const row = dot.parentNode;
 
-        // remove selected class from all dots
         const dots = document.querySelectorAll(".dot");
         dots.forEach((d) => {
             d.classList.remove("selected");
         });
 
-        // add selected class to clicked dot
         dot.classList.add("selected");
 
-        // update message to show current player's turn
-        const message = document.getElementById('message');
-        message.textContent = `Player ${currentPlayer}'s turn`;
-
-        // remove selected dot and dots to its left
         const dotsInRow = [...row.querySelectorAll(".dot")];
         const currentIndex = dotsInRow.indexOf(dot);
         for (let i = 0; i <= currentIndex; i++) {
-            // remove dot from DOM only if it is not the last dot in the document
-            if (dotsInRow[i].parentNode.parentNode.querySelectorAll('.dot').length > 1) {
-                dotsInRow[i].parentNode.removeChild(dotsInRow[i]);
+            if (document.querySelectorAll('.dot').length > 1) {
+                dotsInRow[i].remove();
             }
         }
 
-        checkForWin();
-
-        // Check if there are exactly one dot remaining and stop the game
-
+        // Check if game is over AFTER removing dots
         const remainingDots = document.querySelectorAll('.dot');
         if (remainingDots.length === 1) {
+            gameOver = true;
+            const winner = currentPlayer;
+            const message = document.getElementById('message');
+            if (isAIMode) {
+                message.textContent = winner === 1 ? 'You WON! 🎉' : 'AI has WON! 🤖';
+            } else {
+                message.textContent = `Player ${winner} has WON!`;
+            }
             startConfetti();
             return;
         }
 
-        // Switch players
-        switchPlayers();
-    }
+        currentPlayer = currentPlayer === 1 ? 2 : 1;
+        updateMessage();
 
-    // attach hover and click event listeners to all dots
-    const dots = document.querySelectorAll(".dot");
-    dots.forEach((dot) => {
-        dot.addEventListener("mouseover", hoverHandler);
-        dot.addEventListener("click", clickHandler);
-    });
-
-    // attach mouseout event listener to game board
-    const gameBoard = document.querySelector(".game-board");
-    gameBoard.addEventListener("mouseout", () => {
-        // remove selected class from all dots
-        const dots = document.querySelectorAll(".dot");
-        dots.forEach((dot) => {
-            dot.classList.remove("selected");
-        });
-    });
-
-    function checkForWin() {
-        // check if only one dot remains
-
-        const rows = document.querySelectorAll('.row');
-        let dotsRemaining = 0;
-
-        for (let i = 0; i < rows.length; i++) {
-            const dots = rows[i].querySelectorAll('.dot');
-            dotsRemaining += dots.length;
-
-            if (dots.length === 1) {
-                // The current player has lost
-                const message = document.getElementById('message');
-                // change the message to indicate that the player who is not the current player has won
-                message.textContent = `Player ${currentPlayer === 2 ? 2 : 1} has WON!`;
-                // Return true to indicate that a player has lost
-                return true;
-            }
+        if (isAIMode && currentPlayer === 2) {
+            setTimeout(makeAIMove, 800);
         }
-
-        // No player has lost yet
-        return false;
     }
 
-
-    // Function to switch players
-    function switchPlayers() {
-        // Change the current player
-        if (currentPlayer === 1) {
-            currentPlayer = 2;
+    function updateMessage() {
+        const message = document.getElementById('message');
+        if (isAIMode) {
+            message.textContent = currentPlayer === 1 ? "Your turn" : "AI's turn";
         } else {
-            currentPlayer = 1;
+            message.textContent = `Player ${currentPlayer}'s turn`;
         }
-
-        // Update the message
-        message.textContent = `Player ${currentPlayer}'s turn`;
     }
 
-    // Get all the removable dots on the board
-    const removableDots = document.querySelectorAll('.removable');
-
-    // Function to reset the game board and start a new game
-    function startNewGame() {
-        stopConfetti();
-        // rebuild all the rows and dots on the board and attach event listeners to them again as well and the dot sorting should be 1 4 6
-        const firstRow = document.querySelector('.first-row');
-        const secondRow = document.querySelector('.second-row');
-        const thirdRow = document.querySelector('.third-row');
-
-        firstRow.innerHTML = '<div class="dot" id="row-0-0"></div>';
-        secondRow.innerHTML = '<div class="dot" id="row-1-0"></div><div class="dot" id="row-1-1"></div><div class="dot" id="row-1-2"></div><div class="dot" id="row-1-3"></div>';
-        thirdRow.innerHTML = '<div class="dot" id="row-2-0"></div><div class="dot" id="row-2-1"></div><div class="dot" id="row-2-2"></div><div class="dot" id="row-2-3"></div><div class="dot" id="row-2-4"></div><div class="dot" id="row-2-5"></div>';
-
-        // attach hover and click event listeners to all dots
+    function attachEventListeners() {
         const dots = document.querySelectorAll(".dot");
         dots.forEach((dot) => {
             dot.addEventListener("mouseover", hoverHandler);
             dot.addEventListener("click", clickHandler);
         });
-
-        // Reset the current player to 1
-        currentPlayer = 1;
-
-        // Reset the message
-        message.textContent = `Player ${currentPlayer}'s turn`;
-
-        // Remove the selected class from all dots
-        const tots = document.querySelectorAll(".dot");
-        tots.forEach((dot) => {
-            dot.classList.remove("selected");
-        });
-
-
     }
 
+    attachEventListeners();
 
+    const gameBoard = document.querySelector(".game-board");
+    gameBoard.addEventListener("mouseout", () => {
+        const dots = document.querySelectorAll(".dot");
+        dots.forEach((dot) => {
+            dot.classList.remove("selected");
+        });
+    });
+
+    /**
+     * Find the optimal AI move using Nim strategy for misère variant (last player loses)
+     */
+    function findOptimalMove(rowCounts) {
+        const totalDots = rowCounts.reduce((a, b) => a + b, 0);
+
+        // CRITICAL: If only 2 dots remain, take 1 and WIN immediately
+        if (totalDots === 2) {
+            for (let i = 0; i < rowCounts.length; i++) {
+                if (rowCounts[i] > 0) {
+                    return { rowIndex: i, dotsToRemove: Math.min(1, rowCounts[i]) };
+                }
+            }
+        }
+
+        // Try all possible moves and evaluate each one
+        let bestMove = null;
+
+        for (let rowIdx = 0; rowIdx < rowCounts.length; rowIdx++) {
+            if (rowCounts[rowIdx] === 0) continue;
+
+            for (let take = 1; take <= rowCounts[rowIdx]; take++) {
+                // Simulate this move
+                const newCounts = [...rowCounts];
+                newCounts[rowIdx] -= take;
+
+                const newTotal = newCounts.reduce((a, b) => a + b, 0);
+
+                // Check if this move wins immediately (leaves exactly 1 dot for opponent)
+                if (newTotal === 1) {
+                    return { rowIndex: rowIdx, dotsToRemove: take };
+                }
+
+                // Check if this creates a known losing position for opponent
+                if (isLosingPosition(newCounts)) {
+                    bestMove = { rowIndex: rowIdx, dotsToRemove: take };
+                    // Don't return immediately - keep looking for immediate wins
+                }
+            }
+        }
+
+        return bestMove;
+    }
+
+    /**
+     * Check if a position is a losing position for the player to move
+     * Losing positions in misère Nim:
+     * - [1] (forced to take last)
+     * - [1,1] (any move leaves opponent with [1] - a win)
+     * - [1,1,1] (odd number of 1s in endgame)
+     * - [1,2,3]
+     * - [x,x] where x > 1
+     * - Any position with nim-sum = 0 in normal play, adjusted for misère endgame
+     */
+    function isLosingPosition(counts) {
+        const nonZero = counts.filter(c => c > 0);
+        const total = counts.reduce((a, b) => a + b, 0);
+
+        if (total === 1) return true; // Must take last dot
+        if (total === 2) return false; // Can take 1 and win
+
+        // Check for [1,1]
+        if (nonZero.length === 2 && nonZero[0] === 1 && nonZero[1] === 1) {
+            return true;
+        }
+
+        // Check for [1,1,1]
+        if (nonZero.length === 3 && nonZero.every(c => c === 1)) {
+            return true;
+        }
+
+        // Check for [1,2,3]
+        const sorted = [...nonZero].sort((a, b) => a - b);
+        if (sorted.length === 3 && sorted[0] === 1 && sorted[1] === 2 && sorted[2] === 3) {
+            return true;
+        }
+
+        // Check for [x,x] (two equal piles)
+        if (nonZero.length === 2 && nonZero[0] === nonZero[1]) {
+            return true;
+        }
+
+        // Check for endgame with all piles ≤ 1
+        const allSingletons = nonZero.every(c => c === 1);
+        if (allSingletons) {
+            // In endgame, odd number of piles is losing
+            return nonZero.length % 2 === 1;
+        }
+
+        // For positions not in endgame, use nim-sum
+        const heapsGreaterThanOne = nonZero.filter(c => c > 1);
+        if (heapsGreaterThanOne.length > 0) {
+            const nimSum = counts.reduce((xor, count) => xor ^ count, 0);
+            return nimSum === 0;
+        }
+
+        return false;
+    }
+
+    function makeAIMove() {
+        isAIThinking = true;
+        const message = document.getElementById('message');
+        message.textContent = "AI is thinking...";
+
+        const rows = document.querySelectorAll('.row');
+        const rowCounts = [];
+
+        for (let i = 0; i < rows.length; i++) {
+            const dots = rows[i].querySelectorAll('.dot');
+            rowCounts.push(dots.length);
+        }
+
+        // Find optimal move
+        let move = findOptimalMove(rowCounts);
+
+        if (!move) {
+            // No clear winning move - we're likely in a losing position
+            // Make a reasonable defensive move
+            const totalDots = rowCounts.reduce((a, b) => a + b, 0);
+
+            // If we can leave exactly 1 dot, do it (opponent loses)
+            for (let i = 0; i < rowCounts.length; i++) {
+                if (rowCounts[i] > 0) {
+                    const dotsToTake = totalDots - 1;
+                    if (dotsToTake <= rowCounts[i] && dotsToTake > 0) {
+                        move = { rowIndex: i, dotsToRemove: dotsToTake };
+                        break;
+                    }
+                }
+            }
+
+            // Otherwise, take 1 from the largest pile
+            if (!move) {
+                let maxIdx = -1;
+                let maxCount = 0;
+                for (let i = 0; i < rowCounts.length; i++) {
+                    if (rowCounts[i] > maxCount) {
+                        maxCount = rowCounts[i];
+                        maxIdx = i;
+                    }
+                }
+                move = { rowIndex: maxIdx, dotsToRemove: 1 };
+            }
+        }
+
+        const targetRow = rows[move.rowIndex];
+        const dotsInRow = [...targetRow.querySelectorAll('.dot')];
+
+        for (let i = 0; i < move.dotsToRemove; i++) {
+            if (dotsInRow[i] && document.querySelectorAll('.dot').length > 1) {
+                dotsInRow[i].remove();
+            }
+        }
+
+        isAIThinking = false;
+
+        // Check if game is over
+        const remainingDots = document.querySelectorAll('.dot');
+        if (remainingDots.length === 1) {
+            gameOver = true;
+            const message = document.getElementById('message');
+            message.textContent = 'AI has WON! 🤖';
+            startConfetti();
+            return;
+        }
+
+        currentPlayer = 1;
+        updateMessage();
+    }
+
+    function startNewGame() {
+        if (typeof stopConfetti === 'function') {
+            stopConfetti();
+        }
+        isAIThinking = false;
+        gameOver = false;
+
+        const firstRow = document.querySelector('.first-row');
+        const secondRow = document.querySelector('.second-row');
+        const thirdRow = document.querySelector('.third-row');
+
+        firstRow.innerHTML = '<div class="dot"></div>';
+        secondRow.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+        thirdRow.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+
+        attachEventListeners();
+
+        currentPlayer = 1;
+        updateMessage();
+    }
+
+    function setMode(aiMode) {
+        isAIMode = aiMode;
+
+        const buttons = document.querySelectorAll('.mode-button');
+        buttons.forEach((btn, index) => {
+            if ((index === 1 && aiMode) || (index === 0 && !aiMode)) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        startNewGame();
+    }
 </script>
 </body>
 </html>
