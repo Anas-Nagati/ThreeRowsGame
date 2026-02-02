@@ -2,146 +2,415 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Three Rows Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nim • Strategic Dots</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Righteous&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --secondary: #ec4899;
+            --secondary-dark: #db2777;
+            --accent: #f59e0b;
+            --success: #10b981;
+            --bg-gradient-start: #0f172a;
+            --bg-gradient-end: #1e293b;
+            --surface: rgba(30, 41, 59, 0.8);
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+        }
+
         body {
-            background-color: #f7e7ea;
+            font-family: 'DM Sans', sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            color: var(--text);
+        }
+
+        /* Animated background particles */
+        #particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            background: radial-gradient(circle, var(--primary-light), transparent);
+            border-radius: 50%;
+            opacity: 0.15;
+            animation: float 20s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(100px, -100px) scale(1.2); }
+            50% { transform: translate(-50px, -150px) scale(0.8); }
+            75% { transform: translate(-100px, -50px) scale(1.1); }
+        }
+
+        .game-container {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
 
         .title {
-            font-family: 'Comic Sans MS', cursive;
-            font-size: xxx-large;
-            color: #ff69b4;
-            margin-bottom: 30px;
+            font-family: 'Righteous', cursive;
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            background: linear-gradient(135deg, var(--primary-light), var(--secondary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            text-align: center;
+            letter-spacing: -0.02em;
+            animation: titleGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes titleGlow {
+            0%, 100% { filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.3)); }
+            50% { filter: drop-shadow(0 0 40px rgba(236, 72, 153, 0.5)); }
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-bottom: 3rem;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
         }
 
         .game-board {
-            margin: auto;
-            text-align: center;
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            border-radius: 32px;
+            padding: 3rem 2rem;
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-board::before {
+            content: '';
             position: absolute;
-            width: 100%;
-            background: transparent;
-            top: 50px;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
 
         .row {
             display: flex;
             justify-content: center;
-            margin-bottom: 20px;
+            align-items: center;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            position: relative;
+            z-index: 1;
         }
 
-        #message {
-            font-size: xx-large;
+        .row:last-of-type {
+            margin-bottom: 0;
         }
 
         .dot {
-            width: 90px;
-            height: 90px;
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
-            margin: 0 10px;
             cursor: pointer;
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-            background: linear-gradient(to bottom right, #ff9a9e, #fad0c4, #fad0c4, #ffd1ff);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            box-shadow: 
+                0 10px 30px rgba(99, 102, 241, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            animation: dotAppear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
         }
 
-        .dot.selected {
-            transform: scale(0.8);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        @keyframes dotAppear {
+            from {
+                transform: scale(0) rotate(180deg);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1) rotate(0deg);
+                opacity: 1;
+            }
         }
 
         .first-row .dot {
-            background: linear-gradient(to bottom right, #ffdde1, #ffdde1);
+            background: linear-gradient(135deg, var(--accent), #ea580c);
+            box-shadow: 
+                0 10px 30px rgba(245, 158, 11, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            animation-delay: 0.1s;
         }
 
-        .second-row .dot:nth-child(2n) {
-            background: linear-gradient(to bottom right, #f6d365, #fda085);
+        .second-row .dot {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            box-shadow: 
+                0 10px 30px rgba(99, 102, 241, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
         }
 
-        .third-row .dot:nth-child(odd) {
-            background: linear-gradient(to bottom right, #a1c4fd, #c2e9fb);
+        .second-row .dot:nth-child(1) { animation-delay: 0.15s; }
+        .second-row .dot:nth-child(2) { animation-delay: 0.2s; }
+        .second-row .dot:nth-child(3) { animation-delay: 0.25s; }
+        .second-row .dot:nth-child(4) { animation-delay: 0.3s; }
+
+        .third-row .dot {
+            background: linear-gradient(135deg, var(--secondary), var(--secondary-dark));
+            box-shadow: 
+                0 10px 30px rgba(236, 72, 153, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
         }
 
-        .new-game-button {
-            background-color: #4CAF50;
-            border: none;
-            color: white;
-            padding: 16px 32px;
+        .third-row .dot:nth-child(1) { animation-delay: 0.35s; }
+        .third-row .dot:nth-child(2) { animation-delay: 0.4s; }
+        .third-row .dot:nth-child(3) { animation-delay: 0.45s; }
+        .third-row .dot:nth-child(4) { animation-delay: 0.5s; }
+        .third-row .dot:nth-child(5) { animation-delay: 0.55s; }
+        .third-row .dot:nth-child(6) { animation-delay: 0.6s; }
+
+        .dot::before {
+            content: '';
+            position: absolute;
+            top: 15%;
+            left: 15%;
+            width: 40%;
+            height: 40%;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8), transparent);
+            border-radius: 50%;
+            opacity: 0.6;
+        }
+
+        .dot:hover {
+            transform: scale(1.15) translateY(-5px);
+            box-shadow: 
+                0 15px 40px rgba(99, 102, 241, 0.6),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4);
+        }
+
+        .dot.selected {
+            transform: scale(0.85);
+            opacity: 0.7;
+            box-shadow: 
+                0 5px 15px rgba(99, 102, 241, 0.3),
+                inset 0 -2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        #message {
+            font-size: 1.8rem;
+            font-weight: 700;
             text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: xx-large;
-            margin-top: 20px;
-            cursor: pointer;
-            border-radius: 8px;
-            transition-duration: 0.4s;
+            margin: 2rem 0;
+            color: var(--text);
+            min-height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            letter-spacing: -0.01em;
         }
 
-        .new-game-button:hover {
-            background-color: #3e8e41;
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            align-items: center;
         }
 
         .mode-buttons {
-            margin-top: 20px;
+            display: flex;
+            gap: 1rem;
+            background: rgba(15, 23, 42, 0.5);
+            padding: 0.5rem;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .mode-button {
-            background-color: #2196F3;
+            background: transparent;
             border: none;
-            color: white;
-            padding: 12px 24px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: x-large;
-            margin: 0 10px;
+            color: var(--text-muted);
+            padding: 0.75rem 2rem;
+            font-size: 1rem;
+            font-weight: 600;
             cursor: pointer;
-            border-radius: 8px;
-            transition-duration: 0.4s;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            font-family: 'DM Sans', sans-serif;
+            letter-spacing: 0.02em;
         }
 
         .mode-button:hover {
-            background-color: #0b7dda;
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.05);
         }
 
         .mode-button.active {
-            background-color: #ff69b4;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
         }
 
-        .mode-button.active:hover {
-            background-color: #ff1493;
+        .new-game-button {
+            background: linear-gradient(135deg, var(--success), #059669);
+            border: none;
+            color: white;
+            padding: 1rem 3rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            border-radius: 16px;
+            transition: all 0.3s ease;
+            font-family: 'DM Sans', sans-serif;
+            box-shadow: 
+                0 10px 30px rgba(16, 185, 129, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+
+        .new-game-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 15px 40px rgba(16, 185, 129, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+
+        .new-game-button:active {
+            transform: translateY(0);
+        }
+
+        /* Confetti styles */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: var(--primary);
+            position: absolute;
+            animation: confetti-fall 3s linear forwards;
+            z-index: 1000;
+        }
+
+        @keyframes confetti-fall {
+            to {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dot {
+                width: 60px;
+                height: 60px;
+            }
+
+            .row {
+                gap: 1rem;
+            }
+
+            .game-board {
+                padding: 2rem 1.5rem;
+            }
+
+            #message {
+                font-size: 1.4rem;
+            }
         }
     </style>
 </head>
 <body>
 <div id="particles"></div>
-<div class="game-board">
-    <h1 class="title">Three Rows Game</h1>
-    <div class="first-row row">
-        <div class="dot"></div>
+<div class="game-container">
+    <h1 class="title">NIM</h1>
+    <p class="subtitle">Strategic Dots Game</p>
+    
+    <div class="game-board">
+        <div class="first-row row">
+            <div class="dot"></div>
+        </div>
+        <div class="second-row row">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+        <div class="third-row row">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
     </div>
-    <div class="second-row row">
-        <div class="dot"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
-    </div>
-    <div class="third-row row">
-        <div class="dot"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
-    </div>
+
     <p id="message">Your turn</p>
-    <div class="mode-buttons">
-        <button class="mode-button" onclick="setMode(false)">2 Players</button>
-        <button class="mode-button active" onclick="setMode(true)">vs AI</button>
+    
+    <div class="controls">
+        <div class="mode-buttons">
+            <button class="mode-button" onclick="setMode(false)">2 Players</button>
+            <button class="mode-button active" onclick="setMode(true)">vs AI</button>
+        </div>
+        <button class="new-game-button" onclick="startNewGame()">New Game</button>
     </div>
-    <button class="new-game-button" onclick="startNewGame()">New Game</button>
 </div>
+
 <script>
+    // Create floating particles
+    function createParticles() {
+        const container = document.getElementById('particles');
+        for (let i = 0; i < 15; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.width = Math.random() * 100 + 50 + 'px';
+            particle.style.height = particle.style.width;
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.top = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 20 + 's';
+            particle.style.animationDuration = (Math.random() * 10 + 15) + 's';
+            container.appendChild(particle);
+        }
+    }
+    createParticles();
+
     let currentPlayer = 1;
     let isAIMode = true;
     let isAIThinking = false;
@@ -188,16 +457,15 @@
             }
         }
 
-        // Check if game is over AFTER removing dots
         const remainingDots = document.querySelectorAll('.dot');
         if (remainingDots.length === 1) {
             gameOver = true;
             const winner = currentPlayer;
             const message = document.getElementById('message');
             if (isAIMode) {
-                message.textContent = winner === 1 ? 'You WON! 🎉' : 'AI has WON! 🤖';
+                message.textContent = winner === 1 ? '🎉 You Won!' : '🤖 AI Won!';
             } else {
-                message.textContent = `Player ${winner} has WON!`;
+                message.textContent = `🏆 Player ${winner} Won!`;
             }
             startConfetti();
             return;
@@ -214,7 +482,7 @@
     function updateMessage() {
         const message = document.getElementById('message');
         if (isAIMode) {
-            message.textContent = currentPlayer === 1 ? "Your turn" : "AI's turn";
+            message.textContent = currentPlayer === 1 ? "Your turn" : "AI thinking...";
         } else {
             message.textContent = `Player ${currentPlayer}'s turn`;
         }
@@ -238,13 +506,9 @@
         });
     });
 
-    /**
-     * Find the optimal AI move using Nim strategy for misère variant (last player loses)
-     */
     function findOptimalMove(rowCounts) {
         const totalDots = rowCounts.reduce((a, b) => a + b, 0);
 
-        // CRITICAL: If only 2 dots remain, take 1 and WIN immediately
         if (totalDots === 2) {
             for (let i = 0; i < rowCounts.length; i++) {
                 if (rowCounts[i] > 0) {
@@ -253,28 +517,23 @@
             }
         }
 
-        // Try all possible moves and evaluate each one
         let bestMove = null;
 
         for (let rowIdx = 0; rowIdx < rowCounts.length; rowIdx++) {
             if (rowCounts[rowIdx] === 0) continue;
 
             for (let take = 1; take <= rowCounts[rowIdx]; take++) {
-                // Simulate this move
                 const newCounts = [...rowCounts];
                 newCounts[rowIdx] -= take;
 
                 const newTotal = newCounts.reduce((a, b) => a + b, 0);
 
-                // Check if this move wins immediately (leaves exactly 1 dot for opponent)
                 if (newTotal === 1) {
                     return { rowIndex: rowIdx, dotsToRemove: take };
                 }
 
-                // Check if this creates a known losing position for opponent
                 if (isLosingPosition(newCounts)) {
                     bestMove = { rowIndex: rowIdx, dotsToRemove: take };
-                    // Don't return immediately - keep looking for immediate wins
                 }
             }
         }
@@ -282,52 +541,35 @@
         return bestMove;
     }
 
-    /**
-     * Check if a position is a losing position for the player to move
-     * Losing positions in misère Nim:
-     * - [1] (forced to take last)
-     * - [1,1] (any move leaves opponent with [1] - a win)
-     * - [1,1,1] (odd number of 1s in endgame)
-     * - [1,2,3]
-     * - [x,x] where x > 1
-     * - Any position with nim-sum = 0 in normal play, adjusted for misère endgame
-     */
     function isLosingPosition(counts) {
         const nonZero = counts.filter(c => c > 0);
         const total = counts.reduce((a, b) => a + b, 0);
 
-        if (total === 1) return true; // Must take last dot
-        if (total === 2) return false; // Can take 1 and win
+        if (total === 1) return true;
+        if (total === 2) return false;
 
-        // Check for [1,1]
         if (nonZero.length === 2 && nonZero[0] === 1 && nonZero[1] === 1) {
             return true;
         }
 
-        // Check for [1,1,1]
         if (nonZero.length === 3 && nonZero.every(c => c === 1)) {
             return true;
         }
 
-        // Check for [1,2,3]
         const sorted = [...nonZero].sort((a, b) => a - b);
         if (sorted.length === 3 && sorted[0] === 1 && sorted[1] === 2 && sorted[2] === 3) {
             return true;
         }
 
-        // Check for [x,x] (two equal piles)
         if (nonZero.length === 2 && nonZero[0] === nonZero[1]) {
             return true;
         }
 
-        // Check for endgame with all piles ≤ 1
         const allSingletons = nonZero.every(c => c === 1);
         if (allSingletons) {
-            // In endgame, odd number of piles is losing
             return nonZero.length % 2 === 1;
         }
 
-        // For positions not in endgame, use nim-sum
         const heapsGreaterThanOne = nonZero.filter(c => c > 1);
         if (heapsGreaterThanOne.length > 0) {
             const nimSum = counts.reduce((xor, count) => xor ^ count, 0);
@@ -340,7 +582,7 @@
     function makeAIMove() {
         isAIThinking = true;
         const message = document.getElementById('message');
-        message.textContent = "AI is thinking...";
+        message.textContent = "AI thinking...";
 
         const rows = document.querySelectorAll('.row');
         const rowCounts = [];
@@ -350,15 +592,11 @@
             rowCounts.push(dots.length);
         }
 
-        // Find optimal move
         let move = findOptimalMove(rowCounts);
 
         if (!move) {
-            // No clear winning move - we're likely in a losing position
-            // Make a reasonable defensive move
             const totalDots = rowCounts.reduce((a, b) => a + b, 0);
 
-            // If we can leave exactly 1 dot, do it (opponent loses)
             for (let i = 0; i < rowCounts.length; i++) {
                 if (rowCounts[i] > 0) {
                     const dotsToTake = totalDots - 1;
@@ -369,7 +607,6 @@
                 }
             }
 
-            // Otherwise, take 1 from the largest pile
             if (!move) {
                 let maxIdx = -1;
                 let maxCount = 0;
@@ -394,12 +631,11 @@
 
         isAIThinking = false;
 
-        // Check if game is over
         const remainingDots = document.querySelectorAll('.dot');
         if (remainingDots.length === 1) {
             gameOver = true;
             const message = document.getElementById('message');
-            message.textContent = 'AI has WON! 🤖';
+            message.textContent = '🤖 AI Won!';
             startConfetti();
             return;
         }
@@ -443,6 +679,28 @@
 
         startNewGame();
     }
+
+    function startConfetti() {
+        const colors = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#8b5cf6'];
+        for (let i = 0; i < 150; i++) {
+            setTimeout(() => {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.top = '-10px';
+                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDelay = Math.random() * 0.5 + 's';
+                confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                document.body.appendChild(confetti);
+                
+                setTimeout(() => confetti.remove(), 3000);
+            }, i * 30);
+        }
+    }
+
+    window.stopConfetti = function() {
+        document.querySelectorAll('.confetti').forEach(c => c.remove());
+    };
 </script>
 </body>
 </html>
